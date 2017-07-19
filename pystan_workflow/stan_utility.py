@@ -30,7 +30,7 @@ def check_energy(sampler_params):
         denom = numpy.var(energies)
         if numer / denom < 0.2:
             print('Chain {}: E-BFMI = {}'.format(chain_num, numer / denom))
-            print('Low E-BFMI indicates you may need to reparameterize your model')
+            print('E-BFMI below 0.2 indicates you may need to reparameterize your model')
 
 def partition_div(fit):
     """ Returns parameter arrays separted into divergent and non-divergent transitions"""
