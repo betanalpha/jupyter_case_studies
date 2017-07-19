@@ -1,4 +1,3 @@
-from md5 import md5
 import pystan
 import pickle
 import numpy
@@ -8,20 +7,20 @@ def check_div(sampler_params):
     divergent = [x for y in sampler_params for x in y['divergent__']]
     n = sum(divergent)
     N = len(divergent)
-    print '{} of {} iterations ended with a divergence({}%)'.format(n, N,
-            100 * n / N)
+    print('{} of {} iterations ended with a divergence({}%)'.format(n, N,
+            100 * n / N))
     if n > 0:
-        print 'Try running with larger adapt_delta to remove the divergences'
+        print('Try running with larger adapt_delta to remove the divergences')
 
 def check_treedepth(sampler_params, max_depth = 10):
     """Check transitions that ended prematurely due to maximum treedepth limit"""
     depths = [x for y in sampler_params for x in y['treedepth__']]
     n = sum(1 for x in depths if x == max_depth)
     N = len(depths)
-    print ('{} of {} iterations saturated the maximum tree depth of {}'
-            + '({}%)').format(n, N, max_depth, 100 * n / N)
+    print(('{} of {} iterations saturated the maximum tree depth of {}'
+            + '({}%)').format(n, N, max_depth, 100 * n / N))
     if n > 0:
-        print 'Run again with max_depth set to a larger value to avoid saturation'
+        print('Run again with max_depth set to a larger value to avoid saturation')
 
 def check_energy(sampler_params):
     """Checks the energy Bayesian fraction of missing information (E-BFMI)"""
@@ -30,8 +29,8 @@ def check_energy(sampler_params):
         numer = sum((energies[i] - energies[i - 1])**2 for i in range(1, len(energies))) / len(energies)
         denom = numpy.var(energies)
         if numer / denom < 0.2:
-            print 'Chain {}: E-BFMI = {}'.format(chain_num, numer / denom)
-            print 'Low E-BFMI indicates you may need to reparameterize your model'
+            print('Chain {}: E-BFMI = {}'.format(chain_num, numer / denom))
+            print('Low E-BFMI indicates you may need to reparameterize your model')
 
 def partition_div(fit):
     """ Returns parameter arrays separted into divergent and non-divergent transitions"""
@@ -46,7 +45,7 @@ def partition_div(fit):
         elif type(params[name][0]) == numpy.ndarray:
             sizes[n] = len(params[name][0])
         else:
-            print "Type not recognized!"
+            print("Type not recognized!")
 
     start_idx = [0] * len(names)
     for n in range(1, len(names)):
@@ -94,6 +93,8 @@ def compile_model(filename, model_name=None, **kwargs):
     script on the command line.
 
     See http://pystan.readthedocs.io/en/latest/avoiding_recompilation.html"""
+    from hashlib import md5
+
     with open(filename) as f:
         model_code = f.read()
         code_hash = md5(model_code.encode('ascii')).hexdigest()
