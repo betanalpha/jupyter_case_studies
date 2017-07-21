@@ -62,7 +62,7 @@ def partition_div(fit):
         if sizes[n] == 1:
             reformat_params[name] = [None] * N
         else:
-            reformat_params[name] = [ [None] * (sizes[n]) for _ in xrange(N)]
+            reformat_params[name] = [[None] * (sizes[n]) for _ in range(N)]
 
     for c in range(C):
         for t in range(T):
@@ -75,16 +75,16 @@ def partition_div(fit):
 
     # Grab divergences from sampler parameters
     sampler_params = fit.get_sampler_params(inc_warmup=False)
-    div = reduce(lambda x, y: x + y['divergent__'].tolist(), sampler_params, [])
+    div = [x for y in sampler_params for x in y['divergent__']]
 
     # Append divergences to reformated parameters
     reformat_params[u'divergent'] = div
 
     div_idx = [idx for idx, d in enumerate(div) if d == 1]
-    div_params = dict((key, [val[i] for i in div_idx]) for key, val in reformat_params.iteritems())
+    div_params = dict((key, [val[i] for i in div_idx]) for key, val in reformat_params.items())
 
     nondiv_idx = [idx for idx, d in enumerate(div) if d == 0]
-    nondiv_params = dict((key, [val[i] for i in nondiv_idx]) for key, val in reformat_params.iteritems())
+    nondiv_params = dict((key, [val[i] for i in nondiv_idx]) for key, val in reformat_params.items())
 
     return nondiv_params, div_params
 
