@@ -32,60 +32,35 @@ def check_energy(sampler_params):
             print('Chain {}: E-BFMI = {}'.format(chain_num, numer / denom))
             print('E-BFMI below 0.2 indicates you may need to reparameterize your model')
 
+def _by_chain(unpermuted_extraction):
+    num_chains = len(unpermuted_extraction[0])
+    result = [[] for _ in range(num_chains)]
+    for c in range(num_chains):
+        for i in range(len(unpermuted_extraction)):
+            result[c].append(unpermuted_extraction[i][c])
+    return numpy.array(result)
+
+def _shaped_ordered_params(fit):
+    ef = fit.extract(permuted=False, inc_warmup=False) # flattened, unpermuted, by (iteration, chain)
+    ef = _by_chain(ef)
+    ef = ef.reshape(-1, len(ef[0][0]))
+    ef = ef[:, 0:len(fit.flatnames)] # drop lp__
+    shaped = {}
+    idx = 0
+    for dim, param_name in zip(fit.par_dims, fit.extract().keys()):
+        length = int(numpy.prod(dim))
+        shaped[param_name] = ef[:,idx:idx + length]
+        shaped[param_name].reshape(*([-1] + dim))
+        idx += length
+    return shaped
+
 def partition_div(fit):
     """ Returns parameter arrays separted into divergent and non-divergent transitions"""
-  
-    # Get parameter names and shapes
-    params = fit.extract(inc_warmup=False)
-    names = params.keys()
-    sizes = [0] * len(names)
-    for n, name in enumerate(names):
-        if type(params[name][0]) == numpy.float64:
-            sizes[n] = 1
-        elif type(params[name][0]) == numpy.ndarray:
-            sizes[n] = len(params[name][0])
-        else:
-            print("Type not recognized!")
-
-    start_idx = [0] * len(names)
-    for n in range(1, len(names)):
-        start_idx[n] = start_idx[n - 1] + sizes[n - 1]
-
-    # Reformat unpermuted parameter samples
-    unpermuted_params = fit.extract(permuted=False, inc_warmup=False)
-    T = len(unpermuted_params)
-    C = len(unpermuted_params[0])
-    N = T * C
-
-    reformat_params = {}
-    for n, name in enumerate(names):
-        if sizes[n] == 1:
-            reformat_params[name] = [None] * N
-        else:
-            reformat_params[name] = [[None] * (sizes[n]) for _ in range(N)]
-
-    for c in range(C):
-        for t in range(T):
-            vals = unpermuted_params[t][c]
-            for n, name in enumerate(names):
-                if sizes[n] == 1:
-                    reformat_params[name][c * T + t] = vals[start_idx[n]]
-                else:
-                    reformat_params[name][c * T + t] = vals[start_idx[n]:start_idx[n] + sizes[n]]
-
-    # Grab divergences from sampler parameters
     sampler_params = fit.get_sampler_params(inc_warmup=False)
-    div = [x for y in sampler_params for x in y['divergent__']]
-
-    # Append divergences to reformated parameters
-    reformat_params[u'divergent'] = div
-
-    div_idx = [idx for idx, d in enumerate(div) if d == 1]
-    div_params = dict((key, [val[i] for i in div_idx]) for key, val in reformat_params.items())
-
-    nondiv_idx = [idx for idx, d in enumerate(div) if d == 0]
-    nondiv_params = dict((key, [val[i] for i in nondiv_idx]) for key, val in reformat_params.items())
-
+    div = numpy.concatenate([x['divergent__'] for x in sampler_params]).astype('int')
+    params = _shaped_ordered_params(fit)
+    nondiv_params = dict((key, params[key][div == 0]) for key in params)
+    div_params = dict((key, params[key][div == 1]) for key in params)
     return nondiv_params, div_params
 
 def compile_model(filename, model_name=None, **kwargs):
