@@ -3,7 +3,7 @@ import pickle
 import numpy
 
 def check_div(sampler_params):
-    """Check transitions and ended with a divergence"""
+    """Check transitions that ended with a divergence"""
     divergent = [x for y in sampler_params for x in y['divergent__']]
     n = sum(divergent)
     N = len(divergent)
