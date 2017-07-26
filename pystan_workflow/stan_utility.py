@@ -2,28 +2,31 @@ import pystan
 import pickle
 import numpy
 
-def check_div(sampler_params):
+def check_div(fit):
     """Check transitions that ended with a divergence"""
+    sampler_params = fit.get_sampler_params(inc_warmup=False)
     divergent = [x for y in sampler_params for x in y['divergent__']]
     n = sum(divergent)
     N = len(divergent)
-    print('{} of {} iterations ended with a divergence({}%)'.format(n, N,
+    print('{} of {} iterations ended with a divergence ({}%)'.format(n, N,
             100 * n / N))
     if n > 0:
         print('Try running with larger adapt_delta to remove the divergences')
 
-def check_treedepth(sampler_params, max_depth = 10):
-    """Check transitions that ended prematurely due to maximum treedepth limit"""
+def check_treedepth(fit, max_depth = 10):
+    """Check transitions that ended prematurely due to maximum tree depth limit"""
+    sampler_params = fit.get_sampler_params(inc_warmup=False)
     depths = [x for y in sampler_params for x in y['treedepth__']]
     n = sum(1 for x in depths if x == max_depth)
     N = len(depths)
     print(('{} of {} iterations saturated the maximum tree depth of {}'
-            + '({}%)').format(n, N, max_depth, 100 * n / N))
+            + ' ({}%)').format(n, N, max_depth, 100 * n / N))
     if n > 0:
         print('Run again with max_depth set to a larger value to avoid saturation')
 
-def check_energy(sampler_params):
+def check_energy(fit):
     """Checks the energy Bayesian fraction of missing information (E-BFMI)"""
+    sampler_params = fit.get_sampler_params(inc_warmup=False)
     for chain_num, s in enumerate(sampler_params):
         energies = s['energy__']
         numer = sum((energies[i] - energies[i - 1])**2 for i in range(1, len(energies))) / len(energies)
@@ -55,7 +58,7 @@ def _shaped_ordered_params(fit):
     return shaped
 
 def partition_div(fit):
-    """ Returns parameter arrays separted into divergent and non-divergent transitions"""
+    """ Returns parameter arrays separated into divergent and non-divergent transitions"""
     sampler_params = fit.get_sampler_params(inc_warmup=False)
     div = numpy.concatenate([x['divergent__'] for x in sampler_params]).astype('int')
     params = _shaped_ordered_params(fit)
