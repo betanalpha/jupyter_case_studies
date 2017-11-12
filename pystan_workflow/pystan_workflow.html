@@ -11845,7 +11845,7 @@ in the target distribution which it cannot adequately explore.  Another is the <
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[2]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="kn">import</span> <span class="nn">stan_utility</span>
@@ -11871,11 +11871,20 @@ FILE
     /Users/Betancourt/Documents/Research/Code/betanalpha/jupyter_case_studies/pystan_workflow/stan_utility.py
 
 FUNCTIONS
+    check_all_diagnostics(fit)
+        Checks all MCMC diagnostics
+    
     check_div(fit)
         Check transitions that ended with a divergence
     
     check_energy(fit)
         Checks the energy Bayesian fraction of missing information (E-BFMI)
+    
+    check_n_eff(fit)
+        Checks the effective sample size per iteration
+    
+    check_rhat(fit)
+        Checks the potential scale reduction factors
     
     check_treedepth(fit, max_depth=10)
         Check transitions that ended prematurely due to maximum tree depth limit
@@ -11923,7 +11932,7 @@ $\left\{ y_{n}, \sigma_{n} \right\}$ are given as data.</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;eight_schools_cp.stan&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span>
@@ -11980,7 +11989,7 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">stan_utility</span><span class="o">.</span><span class="n">compile_model</span><span class="p">(</span><span class="s1">&#39;eight_schools_cp.stan&#39;</span><span class="p">)</span>
@@ -12028,7 +12037,7 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">J</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">28</span><span class="p">,</span>  <span class="mi">8</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span>  <span class="mi">7</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">12</span><span class="p">],</span> 
@@ -12054,7 +12063,7 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">pystan</span><span class="o">.</span><span class="n">read_rdump</span><span class="p">(</span><span class="s1">&#39;eight_schools.data.R&#39;</span><span class="p">)</span>
@@ -12077,7 +12086,7 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">fit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sampling</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">194838</span><span class="p">)</span>
@@ -12105,7 +12114,10 @@ Each of those chains proceeds with 1000 warmup iterations and 1000 sampling iter
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Validating-a-Fit-in-Stan">Validating a Fit in Stan<a class="anchor-link" href="#Validating-a-Fit-in-Stan">&#182;</a></h2><p>We are now ready to validate the fit using information contained in the <code>fit</code> object.</p>
+<h2 id="Validating-a-Fit-in-Stan">Validating a Fit in Stan<a class="anchor-link" href="#Validating-a-Fit-in-Stan">&#182;</a></h2><p>We are now ready to validate the fit programmatically using information contained in the <code>fit</code> object.</p>
+<p>The first diagnostics we will check are universal to Markov chain Monte Carlo:
+effective sample size per iteration and split $\hat{R}$.  We will then consider
+a suite of powerful diagnostics that are unique to Hamiltonian Monte Carlo.</p>
 
 </div>
 </div>
@@ -12115,14 +12127,15 @@ Each of those chains proceeds with 1000 warmup iterations and 1000 sampling iter
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Checking-Split-$\hat{R}$-and-Effective-Sample-Sizes">Checking Split $\hat{R}$ and Effective Sample Sizes<a class="anchor-link" href="#Checking-Split-$\hat{R}$-and-Effective-Sample-Sizes">&#182;</a></h3><p>The first diagnostics we check are universal to Markov chain Monte Carlo and are displayed using the <code>print</code> method of the <code>fit</code> object,</p>
+<h3 id="Universal-Diagnostics">Universal Diagnostics<a class="anchor-link" href="#Universal-Diagnostics">&#182;</a></h3><p>The effective sample size, or <code>n_eff</code>, and split $\hat{R}$, or <code>rhat</code>, for
+each parameter is displayed using the <code>print</code> method of the <code>fit</code> object,</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="k">print</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
@@ -12155,7 +12168,7 @@ theta[6]   5.96    0.22   4.75  -1.96   2.91   4.84   8.35  17.36  461.0   1.01
 theta[7]   4.64    0.14   4.93  -5.22   2.16   4.82   7.18   14.9 1250.0    1.0
 lp__     -13.81    1.34   6.55  -25.5 -18.62 -14.24  -9.09  -2.42   24.0   1.18
 
-Samples were drawn using NUTS at Wed Jul 26 23:44:33 2017.
+Samples were drawn using NUTS at Sun Nov 12 15:18:41 2017.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).
@@ -12172,9 +12185,8 @@ convergence, Rhat=1).
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Firstly we want to ensure that the split $\hat{R}$ for each parameter is close to 1.  Empirically we have found that <code>Rhat &gt; 1.1</code> is usually indicative of problems in the fit.  Here all of the parameters look good except for the log posterior density, <code>lp__</code>, which should inspire some small hesitation in our fit.</p>
-<p>Then we want to consider the effective sample size, or <code>n_eff</code>.  The issue here is related to the fact that we are <em>estimating</em> the effective sample size from the fit output.  When <code>n_eff / n_transitions &lt; 0.001</code> the estimators that we use are often biased and can significantly overestimate the true effective sample size.</p>
-<p>Both large split $\hat{R}$ and low effective samples per transition are consequences of poorly mixing Markov chains.  Improving the mixing of the Markov chains almost always requires tweaking the model specification, for example with a reparameterization or stronger priors.</p>
+<p>We can investigate each more programatically, however, using some of our
+utility functions.</p>
 
 </div>
 </div>
@@ -12184,7 +12196,139 @@ convergence, Rhat=1).
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Checking-the-Tree-Depth">Checking the Tree Depth<a class="anchor-link" href="#Checking-the-Tree-Depth">&#182;</a></h3><p>The dynamic implementation of Hamiltonian Monte Carlo used in Stan has a maximum trajectory length built in to avoid infinite loops that can occur for non-identified models.  For sufficiently complex models, however, Stan can saturate this threshold even if the model is identified, which limits the efficacy of the sampler.</p>
+<h4 id="Checking-Split-$\hat{R}$-and-Effective-Sample-Sizes">Checking Split $\hat{R}$ and Effective Sample Sizes<a class="anchor-link" href="#Checking-Split-$\hat{R}$-and-Effective-Sample-Sizes">&#182;</a></h4><p>As noted in Section 1, the effective sample size quantifies the accuracy
+of the Markov chain Monte Carlo estimator of a given function, here each
+parameter mean, provided that geometric ergodicity holds.  The potential
+problem with these effective sample sizes, however, is that we must
+<em>estimate</em> them from the fit output.  When we geneate less than 0.001
+effective samples per transition of the Markov chain the estimators that
+we use are typically biased and can significantly overestimate the true
+effective sample size.</p>
+<p>We can check that our effective sample size per iteration is large enough
+with one of our utility functions,</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_n_eff</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>n_eff / iter looks reasonable for all parameters
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Here there are no indications of problems in our estimates of the effective
+sample size.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h4 id="Checking-Split-$\hat{R}$">Checking Split $\hat{R}$<a class="anchor-link" href="#Checking-Split-$\hat{R}$">&#182;</a></h4><p>The effective sample size, however, is meaningless unless our Markov chain
+and target distribution interact sufficiently well that geometric ergodicity
+holds.  Split $\hat{R}$ quantifies an important necessary condition for
+geometric ergodicity, namely that all chains must converge to the same
+equilibrium behavior.</p>
+<p>If the input Markov chains have the same behavior for a given parameter then
+the corresponding split $\hat{R}$ will be close to 1.  The further split
+$\hat{R}$ is from 1 the more idiosyncraticly the chains behave.  Empirically
+we have found that <code>Rhat &gt; 1.1</code> is usually indicative of problems in the fit.</p>
+<p>In addition to browsing the <code>print</code> output, we can check split $\hat{R}$
+programmatically using one of our utility functions,</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_rhat</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Rhat for parameter lp__ is 1.18210864617!
+  Rhat above 1.1 indicates that the chains very likely have not mixed
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Here the split $\hat{R}$ for all of our parameters except for the unnormalized log posterior density, <code>lp__</code>,  looks good.</p>
+<p>Both large split $\hat{R}$ and low effective sample size per iteration are
+consequences of poorly mixing Markov chains.  Improving the mixing of the
+Markov chains almost always requires tweaking the model specification, for
+example with a reparameterization or stronger priors.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Hamiltonian-Monte-Carlo-Diagnostics">Hamiltonian Monte Carlo Diagnostics<a class="anchor-link" href="#Hamiltonian-Monte-Carlo-Diagnostics">&#182;</a></h3><p>One of the most powerful features of Hamiltonian Monte Carlo is that it
+provides additional diagnostics that can indicate problems with the fit.
+These diagnostics are extremely sensitive and typically indicate problems
+long before the arise in the more universal diagnostics considered above.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h4 id="Checking-the-Tree-Depth">Checking the Tree Depth<a class="anchor-link" href="#Checking-the-Tree-Depth">&#182;</a></h4><p>The dynamic implementation of Hamiltonian Monte Carlo used in Stan has a maximum trajectory length built in to avoid infinite loops that can occur for non-identified models.  For sufficiently complex models, however, Stan can saturate this threshold even if the model is identified, which limits the efficacy of the sampler.</p>
 <p>We can check whether that threshold was hit using one of our utility functions,</p>
 
 </div>
@@ -12192,7 +12336,7 @@ convergence, Rhat=1).
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
+<div class="prompt input_prompt">In&nbsp;[17]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_treedepth</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
@@ -12262,7 +12406,7 @@ convergence, Rhat=1).
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Checking-the-E-BFMI">Checking the E-BFMI<a class="anchor-link" href="#Checking-the-E-BFMI">&#182;</a></h3><p>Hamiltonian Monte Carlo proceeds in two phases -- the algorithm first simulates a Hamiltonian trajectory that rapidly explores a slice of the target parameter space before resampling the auxiliary momenta to allow the next trajectory to explore another slice of the target parameter space.  Unfortunately, the jumps between these slices induced by the momenta resamplings can be short, which often leads to slow exploration.</p>
+<h4 id="Checking-the-E-BFMI">Checking the E-BFMI<a class="anchor-link" href="#Checking-the-E-BFMI">&#182;</a></h4><p>Hamiltonian Monte Carlo proceeds in two phases -- the algorithm first simulates a Hamiltonian trajectory that rapidly explores a slice of the target parameter space before resampling the auxiliary momenta to allow the next trajectory to explore another slice of the target parameter space.  Unfortunately, the jumps between these slices induced by the momenta resamplings can be short, which often leads to slow exploration.</p>
 <p>We can identify this problem by consulting the energy Bayesian Fraction of Missing Information,</p>
 
 </div>
@@ -12270,7 +12414,7 @@ convergence, Rhat=1).
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[10]:</div>
+<div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_energy</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
@@ -12287,7 +12431,7 @@ convergence, Rhat=1).
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>Chain 2: E-BFMI = 0.177681346951
-E-BFMI below 0.2 indicates you may need to reparameterize your model
+  E-BFMI below 0.2 indicates you may need to reparameterize your model
 </pre>
 </div>
 </div>
@@ -12312,14 +12456,14 @@ E-BFMI below 0.2 indicates you may need to reparameterize your model
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Checking-Divergences">Checking Divergences<a class="anchor-link" href="#Checking-Divergences">&#182;</a></h3><p>Finally, we can check divergences which indicate pathological neighborhoods of the posterior that the simulated Hamiltonian trajectories are not able to explore sufficiently well.  For this fit we have a significant number of divergences</p>
+<h4 id="Checking-Divergences">Checking Divergences<a class="anchor-link" href="#Checking-Divergences">&#182;</a></h4><p>Finally, we can check divergences which indicate pathological neighborhoods of the posterior that the simulated Hamiltonian trajectories are not able to explore sufficiently well.  For this fit we have a significant number of divergences</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[11]:</div>
+<div class="prompt input_prompt">In&nbsp;[19]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_div</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
@@ -12336,7 +12480,7 @@ E-BFMI below 0.2 indicates you may need to reparameterize your model
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>202.0 of 4000 iterations ended with a divergence (5.05%)
-Try running with larger adapt_delta to remove the divergences
+  Try running with larger adapt_delta to remove the divergences
 </pre>
 </div>
 </div>
@@ -12358,7 +12502,7 @@ Try running with larger adapt_delta to remove the divergences
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[12]:</div>
+<div class="prompt input_prompt">In&nbsp;[20]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">fit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sampling</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">194838</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">adapt_delta</span><span class="o">=</span><span class="mf">0.9</span><span class="p">))</span>
@@ -12381,7 +12525,7 @@ Try running with larger adapt_delta to remove the divergences
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="prompt input_prompt">In&nbsp;[21]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">sampler_params</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">get_sampler_params</span><span class="p">(</span><span class="n">inc_warmup</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
@@ -12399,7 +12543,7 @@ Try running with larger adapt_delta to remove the divergences
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>45.0 of 4000 iterations ended with a divergence (1.125%)
-Try running with larger adapt_delta to remove the divergences
+  Try running with larger adapt_delta to remove the divergences
 </pre>
 </div>
 </div>
@@ -12422,7 +12566,7 @@ Try running with larger adapt_delta to remove the divergences
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[14]:</div>
+<div class="prompt input_prompt">In&nbsp;[22]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">light</span><span class="o">=</span><span class="s2">&quot;#DCBCBC&quot;</span>
@@ -13309,7 +13453,7 @@ zTXL2qjCZccAAAAASUVORK5CYII=
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="prompt input_prompt">In&nbsp;[23]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;eight_schools_ncp.stan&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span>
@@ -13361,7 +13505,7 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="prompt input_prompt">In&nbsp;[24]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython2"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">stan_utility</span><span class="o">.</span><span class="n">compile_model</span><span class="p">(</span><span class="s1">&#39;eight_schools_ncp.stan&#39;</span><span class="p">)</span>
@@ -13389,14 +13533,10 @@ model {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[17]:</div>
+<div class="prompt input_prompt">In&nbsp;[25]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython2"><pre><span></span><span class="k">print</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
-
-<span class="n">stan_utility</span><span class="o">.</span><span class="n">check_treedepth</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
-<span class="n">stan_utility</span><span class="o">.</span><span class="n">check_energy</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
-<span class="n">stan_utility</span><span class="o">.</span><span class="n">check_div</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">stan_utility</span><span class="o">.</span><span class="n">check_all_diagnostics</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -13409,37 +13549,11 @@ model {
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Inference for Stan model: anon_model_b4ca739f9fe7ffcdbf0d530f00d0a587.
-4 chains, each with iter=2000; warmup=1000; thin=1; 
-post-warmup draws per chain=1000, total post-warmup draws=4000.
-
-                 mean se_mean     sd   2.5%    25%    50%    75%  97.5%  n_eff   Rhat
-mu               4.37    0.05   3.39  -2.49    2.1   4.51   6.69  10.94 4000.0    1.0
-tau              3.59    0.06   3.19   0.13   1.27   2.79   4.95  11.68 2761.0    1.0
-theta_tilde[0]   0.31    0.02   0.96  -1.61  -0.34   0.32   0.95   2.16 4000.0    1.0
-theta_tilde[1]    0.1    0.01   0.92  -1.72  -0.51   0.12   0.72    1.9 3766.0    1.0
-theta_tilde[2]  -0.08    0.02   0.98   -2.0  -0.74  -0.08   0.55   1.91 4000.0    1.0
-theta_tilde[3]   0.05    0.01   0.94  -1.86  -0.57   0.07   0.68   1.87 4000.0    1.0
-theta_tilde[4]  -0.16    0.02   0.95  -2.03  -0.79  -0.17   0.47   1.71 3681.0    1.0
-theta_tilde[5]  -0.09    0.01   0.92  -1.95  -0.71   -0.1   0.52   1.76 3787.0    1.0
-theta_tilde[6]   0.37    0.02   0.97  -1.62  -0.26   0.38   1.01   2.28 4000.0    1.0
-theta_tilde[7]   0.09    0.02   0.96  -1.77  -0.56   0.11   0.74   1.92 4000.0    1.0
-theta[0]         6.15    0.09   5.53  -3.49   2.76   5.66   8.88  19.12 4000.0    1.0
-theta[1]          4.9    0.07   4.56  -4.39   2.04    4.9   7.77  14.09 4000.0    1.0
-theta[2]         3.91    0.08   5.37  -7.72   0.98   4.19   7.18  13.58 4000.0    1.0
-theta[3]         4.63    0.08    4.8  -5.02    1.7   4.68   7.57  14.11 4000.0    1.0
-theta[4]         3.62    0.08   4.79  -7.34   0.89   3.97   6.71  12.27 4000.0    1.0
-theta[5]         3.97    0.07   4.73   -6.0   1.22   4.15   6.96   12.7 4000.0    1.0
-theta[6]         6.37    0.08   5.07  -2.22   3.04   5.97   9.02  18.49 4000.0    1.0
-theta[7]         4.92    0.08   5.32  -5.75   1.82   4.86   7.91  15.68 4000.0    1.0
-lp__            -6.91    0.06   2.34 -12.17  -8.29  -6.56  -5.23  -3.32 1754.0    1.0
-
-Samples were drawn using NUTS at Wed Jul 26 23:44:34 2017.
-For each parameter, n_eff is a crude measure of effective sample size,
-and Rhat is the potential scale reduction factor on split chains (at 
-convergence, Rhat=1).
-0 of 4000 iterations saturated the maximum tree depth of 10 (0%)
+<pre>n_eff / iter looks reasonable for all parameters
+Rhat looks reasonable for all parameters
 0.0 of 4000 iterations ended with a divergence (0.0%)
+0 of 4000 iterations saturated the maximum tree depth of 10 (0%)
+E-BFMI indicated no pathological behavior
 </pre>
 </div>
 </div>

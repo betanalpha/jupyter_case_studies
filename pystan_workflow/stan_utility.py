@@ -11,7 +11,7 @@ def check_div(fit):
     print('{} of {} iterations ended with a divergence ({}%)'.format(n, N,
             100 * n / N))
     if n > 0:
-        print('Try running with larger adapt_delta to remove the divergences')
+        print('  Try running with larger adapt_delta to remove the divergences')
 
 def check_treedepth(fit, max_depth = 10):
     """Check transitions that ended prematurely due to maximum tree depth limit"""
@@ -22,18 +22,69 @@ def check_treedepth(fit, max_depth = 10):
     print(('{} of {} iterations saturated the maximum tree depth of {}'
             + ' ({}%)').format(n, N, max_depth, 100 * n / N))
     if n > 0:
-        print('Run again with max_depth set to a larger value to avoid saturation')
+        print('  Run again with max_depth set to a larger value to avoid saturation')
 
 def check_energy(fit):
     """Checks the energy Bayesian fraction of missing information (E-BFMI)"""
     sampler_params = fit.get_sampler_params(inc_warmup=False)
+    no_warning = True
     for chain_num, s in enumerate(sampler_params):
         energies = s['energy__']
         numer = sum((energies[i] - energies[i - 1])**2 for i in range(1, len(energies))) / len(energies)
         denom = numpy.var(energies)
         if numer / denom < 0.2:
             print('Chain {}: E-BFMI = {}'.format(chain_num, numer / denom))
+            no_warning = False
+    if no_warning:
+        print('E-BFMI indicated no pathological behavior')
+    else:
+        print('  E-BFMI below 0.2 indicates you may need to reparameterize your model')
+
+def check_n_eff(fit):
+    """Checks the effective sample size per iteration"""
+    fit_summary = fit.summary(probs=[0.5])
+    n_effs = [x[4] for x in fit_summary['summary']]
+    names = fit_summary['summary_rownames']
+    n_iter = len(fit.extract()['lp__'])
+
+    no_warning = True
+    for n_eff, name in zip(n_effs, names):
+        ratio = n_eff / n_iter
+        if (ratio < 0.001):
+            print('n_eff / iter for parameter {} is {}!'.format(name, ratio))
             print('E-BFMI below 0.2 indicates you may need to reparameterize your model')
+            no_warning = False
+    if no_warning:
+        print('n_eff / iter looks reasonable for all parameters')
+    else:
+        print('  n_eff / iter below 0.001 indicates that the effective sample size has likely been overestimated')
+
+def check_rhat(fit):
+    """Checks the potential scale reduction factors"""
+    from math import isnan
+    from math import isinf
+
+    fit_summary = fit.summary(probs=[0.5])
+    rhats = [x[5] for x in fit_summary['summary']]
+    names = fit_summary['summary_rownames']
+
+    no_warning = True
+    for rhat, name in zip(rhats, names):
+        if (rhat > 1.1 or isnan(rhat) or isinf(rhat)):
+            print('Rhat for parameter {} is {}!'.format(name, rhat))
+            no_warning = False
+    if no_warning:
+        print('Rhat looks reasonable for all parameters')
+    else:
+        print('  Rhat above 1.1 indicates that the chains very likely have not mixed')
+
+def check_all_diagnostics(fit):
+    """Checks all MCMC diagnostics"""
+    check_n_eff(fit)
+    check_rhat(fit)
+    check_div(fit)
+    check_treedepth(fit)
+    check_energy(fit)
 
 def _by_chain(unpermuted_extraction):
     num_chains = len(unpermuted_extraction[0])
