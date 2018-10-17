@@ -21,7 +21,7 @@ generated quantities {
       for (b in 0:U) {
         sum_p = sum_p + exp(poisson_lpmf(b | lambda) - poisson_lcdf(U | lambda));
         if (sum_p >= u) {
-          y_ppc[n] = b;
+          y[n] = b;
           break;
         }
       }
